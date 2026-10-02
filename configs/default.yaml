@@ -1,0 +1,166 @@
+# palm-prior defaults. Units: metres, radians, seconds.
+# Every number here is traceable to docs/EXPLAINER.md unless the comment says MEASURE
+# (a property of my physical setup that I measure with a ruler).
+
+seed: 0                             # global seed; scripts override with seed=<n>
+
+paths:
+  raw_dir: data/raw                 # original phone clips, renamed demo_001.mp4 ...
+  dots: data/raw/dots.yaml          # 9 tape-dot xy positions in cm, table frame
+  recording_log: data/raw/recording_log.csv  # clip,type,block_dot,plate_dot,goal,arc,detail,redo
+  camera_yaml: data/calib/camera.yaml        # K, dist, RMS from scripts/calibrate.py
+  human_dir: data/human             # extracted human transitions
+  robot_dir: data/robot             # generated robot episodes
+  checkpoints: checkpoints          # world-model checkpoints
+  results: results                  # csv, png, mp4 outputs
+  third_party: third_party          # downloaded MediaPipe .task model
+
+# Physical objects, shared by perception and sim (EXPLAINER §2, Module 7)
+objects:
+  block_size: 0.04                  # MEASURE: cube edge b; EXPLAINER uses a 4 cm block
+  block_mass: 0.05                  # 50 g block (Module 7)
+  block_friction: 1.5               # sliding friction of the block (Module 7)
+  plate_radius: 0.09                # MEASURE: radius of my real plate (~18 cm plate in the filming guide)
+  plate_height: 0.015               # plate top height = target height for goal "plate"
+  pad_size: [0.10, 0.10, 0.005]     # 10x10x0.5 cm static pad (Module 7)
+  box_size: 0.08                    # 8 cm static cube, used as the "box top" goal (Module 7)
+
+# Target top height h_tgt per goal (EXPLAINER §2, state index 6)
+goals:
+  plate: 0.015
+  pad: 0.005
+  box: 0.08
+
+# Module 1 - camera calibration
+calib:
+  checker_inner: [9, 6]             # inner corners (cols, rows)
+  checker_square: 0.025             # 25 mm squares
+  n_frames: 40                      # well-spread frames selected from calib.mp4
+  max_rms_px: 0.5                   # acceptance: reprojection RMS below this
+
+# Module 2 - ArUco table frame
+aruco:
+  dict: DICT_4X4_50                 # OpenCV predefined dictionary
+  grid: [2, 2]                      # GridBoard markers (x, y)
+  marker_len: 0.060                 # 60 mm marker side
+  marker_gap: 0.015                 # 15 mm gap between markers
+  board_dpi: 300                    # print resolution for scripts/make_board.py
+
+# Module 3 - hand pinch point
+hand:
+  rest_seconds: 2.0                 # still hand at clip start and end, used for the metric scale k
+  aperture_lo_pct: 10               # percentile defining a_lo of the per-clip aperture
+  aperture_hi_pct: 90               # percentile defining a_hi
+  close_frac: 0.3                   # close below a_lo + 0.3*(a_hi - a_lo)
+  open_frac: 0.6                    # open above a_lo + 0.6*(a_hi - a_lo)
+  max_gap_frames: 10                # interpolate detection gaps up to this length
+  savgol_window: 9                  # Savitzky-Golay smoothing window (frames)
+  savgol_order: 2                   # Savitzky-Golay polynomial order
+  max_reproj_px: 15                 # QC: reprojected pinch point must land within this of the image pinch
+
+# Module 4 - block tracking
+block_track:
+  lift_margin: 0.03                 # pinch this far above the block's last z => treat as in-hand
+  occlusion_area_frac: 0.3          # blob smaller than this fraction of the rest-time area => invalid
+  max_gap_frames: 10                # interpolate gaps up to this length
+  savgol_window: 9                  # smoothing window (frames)
+  savgol_order: 2                   # smoothing polynomial order
+
+# Module 5 - human transitions
+human:
+  tau: 2.0                          # time stretch: people move ~2x faster than the robot
+  rate_hz: 10.0                     # control/sampling rate shared by human, sim and world model
+  attach_margin: 0.01               # attached = (g == 1) and (z_obj > b/2 + attach_margin)
+  n_heldout_clips: 5                # held-out human clips, including at least one failure
+  qc:
+    min_valid_hand: 0.9             # fraction of frames with a valid pinch point
+    min_valid_block: 0.9            # fraction of frames with a valid block position
+    max_start_err: 0.02             # vision block start vs dots.yaml disagreement
+    min_pass_clips: 35              # acceptance over the whole dataset (docs/TODO.md Day 2)
+
+# Module 6 - two-anchor retargeting
+retarget:
+  n_knots: 8                        # residual knots, knot 0 fixed at 0 (also the MPC decision vars)
+  degenerate_dist: 0.05             # |x_r - x_g| below this => alpha = 1
+  kappa_min: 0.5                    # lower clip of the vertical scale kappa = clip(|alpha|, .5, 1.5)
+  kappa_max: 1.5                    # upper clip of kappa
+
+# Module 7 - MuJoCo scene and IK tracker
+sim:
+  timestep: 0.002                   # physics step
+  integrator: implicitfast          # MuJoCo integrator
+  cone: elliptic                    # friction cone
+  impratio: 10                      # normal/tangential impedance ratio, reduces grasp slip
+  substeps_per_control: 50          # 50 * 0.002 s = 0.1 s = one 10 Hz control step
+  ik_every: 10                      # recompute IK every this many physics steps
+  max_step: 0.025                   # clip of |a_xyz| per control step (2.5 cm)
+  tcp_offset: 0.1034                # tcp site below the hand body, between the fingertips
+  gripper_open_ctrl: 255            # Menagerie Panda gripper actuator: 255 = open
+  gripper_close_ctrl: 0             # 0 = closed
+  ik:
+    damping: 0.05                   # lambda in dq = J^T (J J^T + lambda^2 I)^-1 e
+    nullspace_gain: 0.1             # k_n posture term; NOT fixed by the EXPLAINER, tuned here
+  layout:
+    x_range: [0.40, 0.65]           # block and target x in the world frame
+    y_range: [-0.20, 0.20]          # block and target y
+    min_separation: 0.15            # block and target at least this far apart
+  success:
+    xy_radius: 0.03                 # block centre within this of the target xy
+    z_tol: 0.01                     # |z_obj - (h_tgt + b/2)| below this
+    settle_seconds: 1.0             # settle before the speed check
+    max_speed: 0.01                 # block speed below this after settling
+
+# Module 8 - robot data generation
+robot_data:
+  n_train_episodes: 300             # seeds 1000..1299
+  n_heldout_episodes: 100           # seeds 900..999
+  train_seed_start: 1000            # training layout seeds
+  heldout_seed_start: 900           # held-out layout seeds
+  eval_seeds: [0, 49]               # inclusive range reserved for control evaluation
+  knot_noise: 0.015                 # sigma of the smooth noise on the 8 retarget knots
+  failure_prob: 0.2                 # probability of injecting a failure in an episode
+  failure_offset: [0.02, 0.03]      # xy offset range for an off-centre close
+  subsets: [0, 5, 10, 25, 50, 100, 300]   # nested N for the data-efficiency curve
+
+# Module 9 - ensemble world model
+wm:
+  n_members: 5                      # independent MLPs, each with its own bootstrap resample
+  hidden: [128, 128, 128]           # SiLU layers; input 8+4+1 = 13, output 3 + 1 logit
+  rollout_len: 5                    # self-rollout length in the training loss
+  attach_weight: 0.5                # w_a on the BCE term
+  lr: 1.0e-3                        # Adam
+  batch_size: 256                   # batch per member
+  pretrain_steps: 3000              # human pretraining steps per member
+  finetune_steps: 1500              # robot fine-tuning steps per member
+  finetune_lr_factor: 0.3           # fine-tune lr = lr * this
+  human_batch_frac: 0.2             # fraction of human samples in a fine-tuning batch
+  eval_horizon: 10                  # open-loop horizon for the E2 block-position error
+
+# Module 10 - CEM-MPC
+mpc:
+  samples: 256                      # CEM candidates per iteration
+  elites: 25                        # candidates kept per iteration
+  iters: 4                          # CEM iterations per re-plan
+  sigma_knot: 0.015                 # initial sigma on the xyz residual knots
+  sigma_timing: 2.0                 # initial sigma on the close/open timing shifts (steps)
+  timing_shift_range: 5             # integer shifts limited to +-5 steps
+  execute_steps: 5                  # execute 0.5 s, then re-plan with a warm start
+  beta: 1.0                         # pessimism weight on the ensemble std of the cost
+  w_smooth: 10.0                    # weight on sum ||r_k - r_{k-1}||^2
+  d_xy_scale: 0.02                  # xy miss normaliser in D (2 cm)
+  d_z_scale: 0.01                   # height miss normaliser in D (1 cm)
+  true_sim_samples: 32              # candidates when the model is the true simulator
+
+# Phase 0 smoke test (scripts/smoke_mujoco.py)
+smoke:
+  n_steps: 500                      # physics steps to measure steps/s
+  render_w: 480                     # smoke.png width
+  render_h: 360                     # smoke.png height
+
+# Experiments (EXPLAINER §7)
+eval:
+  repeats: 3                        # repeats per layout seed
+  push_step: 15                     # E5: push the block at this control step
+  push_distance: 0.05               # E5: 5 cm push
+  obs_noise: 0.02                   # E5: Gaussian noise on object positions given to the planner
+  heatmap_offset: 0.03              # Fig: grasp xy offsets swept over +-3 cm

@@ -1,0 +1,41 @@
+[project]
+name = "palm-prior"
+version = "0.1.0"
+description = "Object-centric world model pretrained on phone video of a human hand, adapted to a simulated Franka Panda and used for CEM-MPC."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "numpy>=1.26,<2.0",
+    "scipy>=1.11",
+    "opencv-contrib-python>=4.9",
+    "mediapipe>=0.10.14",
+    "mujoco>=3.1",
+    "robot_descriptions>=1.11",
+    "torch>=2.2",
+    "omegaconf>=2.3",
+    "matplotlib>=3.8",
+    "imageio[ffmpeg]>=2.34",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.uv]
+# macOS: uv hard-links from its cache and those files carry the UF_HIDDEN flag, which
+# Python 3.11+ uses to skip .pth files. That silently breaks the editable install.
+link-mode = "copy"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/palm_prior"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
