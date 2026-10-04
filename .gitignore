@@ -5,7 +5,6 @@ __pycache__/
 *.egg-info/
 
 data/
-!data/.gitkeep
 checkpoints/
 third_party/
 
