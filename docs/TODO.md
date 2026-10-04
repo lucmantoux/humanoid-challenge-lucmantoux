@@ -74,20 +74,22 @@ extraction, simulator, E1, E2. Everything after task 29 is upside. Protect tasks
 
 ## Simulator
 
-12. [ ] Ask Cursor: **Phase 4a** (scene + IK).
-        **Expect:** `assets/scene.xml` and `src/palm_prior/sim/{env,ik}.py` exist.
+12. [x] Ask Cursor: **Phase 4a** (scene + IK).
+        **Expect:** `assets/scene.xml` and `src/palm_prior/sim/{scene,env,ik}.py` exist.
 13. [ ] Look at the scene:
         macOS `uv run mjpython scripts/view_scene.py`,
         Windows and Linux `uv run python scripts/view_scene.py`.
         **Expect:** the `tcp` marker sphere sits **between the two fingertips**, not
         inside the wrist, and the block, plate, pad and box rest on the floor without
         sinking into it or overlapping each other.
-14. [ ] Run `uv run pytest tests/test_ik.py`.
-        **Expect:** 5 random targets reached to under 5 mm within 30 control steps. If the
-        arm reaches them but slowly, the damping is too high; if it thrashes, too low.
-15. [ ] Run `uv run python scripts/render_layouts.py`.
-        **Expect:** a grid of 6 images, each with the block and the target at least 15 cm
-        apart, both inside the arm's reach, nothing overlapping.
+14. [x] Run `uv run pytest tests/test_ik.py tests/test_scene.py`.
+        **Expect:** 18 tests pass, including 5 random targets reached to under 5 mm within
+        30 control steps. If the arm reaches them but slowly, the damping is too high; if
+        it thrashes, too low.
+15. [x] Run `uv run python scripts/render_layouts.py`.
+        **Expect:** `results/layouts.png`, a grid of 6 images, each with the block and the
+        target at least 15 cm apart, both inside the arm's reach, nothing overlapping, and
+        a small red dot between the fingertips.
 16. [ ] Ask Cursor: **Phase 4b** (scripted pick-and-place).
         **Expect:** `scripts/scripted_check.py` exists and takes a goal and a seed.
 17. [ ] Run `uv run python scripts/scripted_check.py`.

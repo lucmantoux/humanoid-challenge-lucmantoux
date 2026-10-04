@@ -66,6 +66,13 @@ uv run python scripts/debug_aruco.py clip=1    # table-frame axes over a clip, p
 uv run python scripts/preview_hand.py clip=1   # hand landmarks + block mask over a clip
 ```
 
+Simulator, which needs no footage:
+
+```bash
+uv run python scripts/render_layouts.py  # 6 sampled layouts -> results/layouts.png
+uv run mjpython scripts/view_scene.py    # interactive viewer; plain `python` on Windows and Linux
+```
+
 Every script takes `key=value` overrides for anything in `configs/default.yaml`, plus
 `seed=<n>` and `overwrite=true` (scripts skip work whose output already exists).
 

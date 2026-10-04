@@ -119,6 +119,9 @@ sim:
   ik:
     damping: 0.05                   # lambda in dq = J^T (J J^T + lambda^2 I)^-1 e
     nullspace_gain: 0.1             # k_n posture term; NOT fixed by the EXPLAINER, tuned here
+    rot_weight: 0.3                 # metres per radian in the IK error; NOT fixed by the
+                                    # EXPLAINER. Position is what the planner asks for, so
+                                    # orientation gets less than unit weight.
   layout:
     x_range: [0.40, 0.65]           # block and target x in the world frame
     y_range: [-0.20, 0.20]          # block and target y
