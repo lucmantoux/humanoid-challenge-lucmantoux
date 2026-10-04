@@ -9,6 +9,8 @@ paths:
   dots: data/raw/dots.yaml          # 9 tape-dot xy positions in cm, table frame
   recording_log: data/raw/recording_log.csv  # clip,type,block_dot,plate_dot,goal,arc,detail,redo
   camera_yaml: data/calib/camera.yaml        # K, dist, RMS from scripts/calibrate.py
+  block_hsv: data/calib/block_hsv.yaml       # HSV range fitted by clicking the block once
+  hand_model: third_party/hand_landmarker.task  # MediaPipe model, downloaded on first use
   human_dir: data/human             # extracted human transitions
   robot_dir: data/robot             # generated robot episodes
   checkpoints: checkpoints          # world-model checkpoints
@@ -37,6 +39,8 @@ calib:
   checker_square: 0.025             # 25 mm squares
   n_frames: 40                      # well-spread frames selected from calib.mp4
   max_rms_px: 0.5                   # acceptance: reprojection RMS below this
+  detect_stride: 5                  # look for the checkerboard every Nth frame of calib.mp4
+  outlier_factor: 3.0               # drop views whose RMS exceeds this x the median, then refit
 
 # Module 2 - ArUco table frame
 aruco:
@@ -45,6 +49,21 @@ aruco:
   marker_len: 0.060                 # 60 mm marker side
   marker_gap: 0.015                 # 15 mm gap between markers
   board_dpi: 300                    # print resolution for scripts/make_board.py
+  min_markers: 3                    # a frame needs at least this many markers for a pose
+  max_origin_jitter_px: 2.0         # QC in scripts/debug_aruco.py: a tripod should beat this
+
+# Fitting the block colour by clicking it once in empty.mp4 (perception/block.py).
+# The EXPLAINER specifies "HSV threshold, largest blob" but not the fitting rule;
+# these are the parameters of the rule chosen here.
+block_color:
+  roi_half: 12                      # half-width in px of the patch sampled around the click
+  pct_lo: 5                         # low percentile of the patch's hue kept
+  pct_hi: 95                        # high percentile of the patch's hue
+  hue_margin: 8                     # widen the hue band by this many OpenCV hue units
+  sat_min: 70                       # fixed floor: pixels less saturated are table, not block
+  val_min: 50                       # fixed floor: darker pixels are shadow, not block
+  morph_kernel: 5                   # open/close kernel size, px
+  min_area_px: 150                  # blobs smaller than this are not the block
 
 # Module 3 - hand pinch point
 hand:

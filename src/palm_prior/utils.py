@@ -6,7 +6,7 @@ import os
 import random
 import time
 from pathlib import Path
-from typing import Sequence
+from typing import Iterator, NamedTuple, Sequence
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
@@ -82,6 +82,54 @@ def write_video(path: str | Path, frames: Sequence[np.ndarray], fps: float) -> P
         for f in frames:
             w_.append_data(f)
     return out
+
+
+class VideoInfo(NamedTuple):
+    """n_frames may be 0 if the container does not report it."""
+
+    n_frames: int
+    fps: float
+    width: int
+    height: int
+
+
+def video_info(path: str | Path) -> VideoInfo:
+    """Read frame count, fps and size without decoding the whole file."""
+    import cv2
+
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise FileNotFoundError(f"cannot open video: {path}")
+    try:
+        return VideoInfo(
+            n_frames=int(cap.get(cv2.CAP_PROP_FRAME_COUNT)),
+            fps=float(cap.get(cv2.CAP_PROP_FPS)),
+            width=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            height=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        )
+    finally:
+        cap.release()
+
+
+def video_frames(path: str | Path, stride: int = 1) -> Iterator[tuple[int, np.ndarray]]:
+    """Yield (frame_index, BGR frame) from a video, keeping every `stride`-th frame."""
+    import cv2
+
+    assert stride >= 1, stride
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise FileNotFoundError(f"cannot open video: {path}")
+    try:
+        i = 0
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                return
+            if i % stride == 0:
+                yield i, frame
+            i += 1
+    finally:
+        cap.release()
 
 
 class Timer:

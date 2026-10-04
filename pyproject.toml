@@ -8,7 +8,9 @@ dependencies = [
     "numpy>=1.26,<2.0",
     "scipy>=1.11",
     "opencv-contrib-python>=4.9",
-    "mediapipe>=0.10.14",
+    # 1.x crashes on macOS in HandLandmarker ("DrishtiMetalHelper ... Service is
+    # unavailable"), with the CPU delegate too. 0.10.x runs on all three platforms.
+    "mediapipe>=0.10.14,<1.0",
     "mujoco>=3.1",
     "robot_descriptions>=1.11",
     "torch>=2.2",
@@ -47,6 +49,9 @@ packages = ["src/palm_prior"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Import palm_prior straight from the tree rather than through the editable install, so
+# the tests pass on a fresh clone and survive the macOS .pth problem noted in README.
+pythonpath = ["src"]
 
 [dependency-groups]
 dev = ["pytest>=8.0"]

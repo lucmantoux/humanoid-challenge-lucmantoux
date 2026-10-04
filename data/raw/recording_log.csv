@@ -1,0 +1,46 @@
+clip,type,block_dot,plate_dot,goal,arc,detail,redo
+1,success,1,3,plate,low,,0
+2,success,3,1,plate,high,,0
+3,success,4,6,plate,low,,0
+4,success,6,4,plate,high,,0
+5,success,7,9,plate,low,,0
+6,success,9,7,plate,high,,0
+7,success,1,7,plate,low,,0
+8,success,7,1,plate,high,,0
+9,success,2,8,plate,low,,0
+10,success,8,2,plate,high,,0
+11,success,3,9,plate,low,,0
+12,success,9,3,plate,high,,0
+13,success,1,9,plate,low,,0
+14,success,9,1,plate,high,,0
+15,success,3,7,plate,low,,0
+16,success,7,3,plate,high,,0
+17,success,5,1,plate,low,,0
+18,success,5,3,plate,high,,0
+19,success,5,7,plate,low,,0
+20,success,5,9,plate,high,,0
+21,success,2,4,plate,low,,0
+22,success,4,8,plate,high,,0
+23,success,8,6,plate,low,,0
+24,success,6,2,plate,high,,0
+25,success,1,5,plate,low,,0
+26,success,9,5,plate,high,,0
+27,success,2,6,plate,low,,0
+28,success,4,2,plate,high,,0
+29,success,8,4,plate,low,,0
+30,success,6,8,plate,high,,0
+31,F1,1,3,plate,,close 3 cm to the left,0
+32,F1,5,9,plate,,close 3 cm to the right,0
+33,F1,7,2,plate,,close 3 cm behind (toward you),0
+34,F1,6,4,plate,,close 2 cm to the left,0
+35,F2,1,9,plate,,drop halfway from ~10 cm,0
+36,F2,3,7,plate,,drop halfway from ~15 cm,0
+37,F2,8,2,plate,,drop 1/3 of the way,0
+38,F2,4,6,plate,,drop 2/3 of the way,0
+39,F3,1,3,plate,,place 8 cm short,0
+40,F3,9,5,plate,,place 10 cm short,0
+41,F3,7,1,plate,,place 8 cm short,0
+42,F3,2,8,plate,,place 10 cm short,0
+43,F4,5,1,plate,,push toward dot 6,0
+44,F4,4,9,plate,,push toward dot 5,0
+45,F4,8,3,plate,,push toward dot 9,0

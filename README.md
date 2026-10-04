@@ -44,11 +44,26 @@ The one platform difference: the interactive MuJoCo viewer must be launched with
 `mjpython` on macOS and with plain `python` on Windows and Linux. Offscreen rendering,
 which is what every script in this repo uses, is identical everywhere.
 
+`uv sync` installs the package in editable mode through a `.pth` file in `.venv`. Python
+ignores a `.pth` file that the filesystem marks hidden, which macOS does to everything
+under an iCloud-synced `.venv`, so neither the tests nor the scripts lean on it: pytest
+reads `pythonpath = ["src"]` and the scripts import `scripts/_bootstrap.py`.
+
 ## What runs today
+
+Print pack and environment:
 
 ```bash
 uv run python scripts/smoke_mujoco.py    # loads the Menagerie Panda, prints steps/s, writes results/smoke.png
 uv run python scripts/make_board.py      # writes results/print/board_a4.pdf (ArUco board + checkerboard)
+```
+
+Perception, once the clips from [docs/FILMING_GUIDE.md](docs/FILMING_GUIDE.md) are in `data/raw/`:
+
+```bash
+uv run python scripts/calibrate.py       # calib.mp4 -> data/calib/camera.yaml + results/calib_check.png
+uv run python scripts/debug_aruco.py clip=1    # table-frame axes over a clip, prints the origin jitter
+uv run python scripts/preview_hand.py clip=1   # hand landmarks + block mask over a clip
 ```
 
 Every script takes `key=value` overrides for anything in `configs/default.yaml`, plus

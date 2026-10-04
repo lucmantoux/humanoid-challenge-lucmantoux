@@ -210,10 +210,17 @@ before you get here (`docs/TODO.md` tells you when).
        uv run python scripts/debug_aruco.py clip=1
        uv run python scripts/preview_hand.py clip=1
        ```
+       The third one opens a window showing the first frame of `empty.mp4`. Click once on
+       the centre of the block, then press any key. It only asks the first time; the
+       colour it fits is saved to `data/calib/block_hsv.yaml`.
 4. [ ] Check all five of these. **Every one must pass before you record anything else.**
        - [ ] `calibrate.py` prints an RMS below **0.5 px**
        - [ ] `debug_aruco.py` prints board-origin jitter below **2 px** and the drawn axes
-             sit still on the board for the whole clip
+             sit still on the board for the whole clip. In
+             `results/debug_aruco_demo_001.mp4` the yellow dot must sit on the **ORIGIN**
+             corner of the printed sheet, with red pointing right along the bottom edge,
+             green up the left edge, and blue lifting off the table towards the camera.
+             Blue going into the table means the board is upside down — rotate the sheet.
        - [ ] in the preview video, hand landmarks track your hand, and the **thumb tip and
              index tip are both visible at the moment you grasp**
        - [ ] the block mask is a clean blob covering the block only — not your skin, not

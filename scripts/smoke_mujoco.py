@@ -18,6 +18,8 @@ import mujoco
 import numpy as np
 from robot_descriptions import panda_mj_description
 
+import _bootstrap  # noqa: F401  puts src/ on sys.path
+
 from palm_prior.utils import Timer, ensure_dir, load_config, resolve, set_seed, should_skip
 
 

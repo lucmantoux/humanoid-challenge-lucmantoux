@@ -1,0 +1,19 @@
+# Positions of the 9 taped dots, in centimetres, in the table frame T.
+# T has its origin at the ORIGIN corner of the printed ArUco board, x to the right and
+# y away from the phone (see docs/FILMING_GUIDE.md Step 2).
+#
+# These are the positions the filming guide tells you to tape, so they are correct by
+# construction. If you had to move anything, measure it and edit the numbers here.
+# The extraction pipeline cross-checks them against the vision measurements and reports
+# the disagreement; anything under 2 cm is fine.
+
+dots:
+  1: [22.0, 40.0]
+  2: [37.0, 40.0]
+  3: [52.0, 40.0]
+  4: [22.0, 25.0]
+  5: [37.0, 25.0]
+  6: [52.0, 25.0]
+  7: [22.0, 10.0]
+  8: [37.0, 10.0]
+  9: [52.0, 10.0]

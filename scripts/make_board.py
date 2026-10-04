@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 from matplotlib.patches import FancyArrow, Rectangle  # noqa: E402
 
+import _bootstrap  # noqa: E402,F401  puts src/ on sys.path
+
 from palm_prior.perception.aruco import build_board  # noqa: E402
 from palm_prior.utils import Timer, ensure_dir, load_config, resolve, set_seed, should_skip  # noqa: E402
 

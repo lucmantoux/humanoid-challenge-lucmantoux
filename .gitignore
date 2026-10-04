@@ -4,7 +4,15 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 
-data/
+# Clips, extracted transitions and generated episodes are far too big for git. The small
+# files that describe my physical setup are not, and nothing reproduces without them.
+data/**
+!data/raw/
+!data/raw/dots.yaml
+!data/raw/recording_log.csv
+!data/calib/
+!data/calib/*.yaml
+
 checkpoints/
 third_party/
 
