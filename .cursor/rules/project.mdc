@@ -7,8 +7,10 @@ palm-prior: I learn an object-centric world model of "how a block moves when a h
 docs/EXPLAINER.md is the source of truth for state/action definitions, equations, frames, file formats and defaults. If code must deviate, STOP and explain first.
 
 # Platform
-macOS on Apple Silicon, CPU only. Python 3.11 managed by uv. No CUDA, no Colab, no robosuite, no LIBERO.
-Sim = plain MuJoCo (pip `mujoco`) + MuJoCo Menagerie franka_emika_panda (via the `robot_descriptions` package, or a git clone into third_party/ — pick one and document it). Offscreen rendering via mujoco.Renderer; the interactive viewer runs under `mjpython`.
+Must run on macOS (Apple Silicon — my machine, the one everything is tested on), Windows and Linux, CPU only.
+Python 3.11 managed by uv. No CUDA, no Colab, no robosuite, no LIBERO.
+Portable code only: pathlib for every path, utf-8 on every text read/write, no shelling out to platform tools (no sips/open/xdg-open), no hardcoded `/` or `\`, no os-specific APIs without a documented fallback. Where a platform genuinely differs, branch on sys.platform and say so in the docstring.
+Sim = plain MuJoCo (pip `mujoco`) + MuJoCo Menagerie franka_emika_panda via the `robot_descriptions` package, which caches a clone in ~/.cache/robot_descriptions. Offscreen rendering with mujoco.Renderer works on all three platforms; the interactive viewer needs `mjpython` on macOS and plain `python` on Windows and Linux.
 torch on CPU (models are tiny). Use torch.set_num_threads sensibly.
 
 # Stack (ask + justify before adding anything)

@@ -157,7 +157,7 @@ smoke:
   render_w: 480                     # smoke.png width
   render_h: 360                     # smoke.png height
 
-# Experiments (EXPLAINER §7)
+# Experiments (EXPLAINER §25)
 eval:
   repeats: 3                        # repeats per layout seed
   push_step: 15                     # E5: push the block at this control step

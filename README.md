@@ -10,19 +10,39 @@ Recording protocol: [docs/FILMING_GUIDE.md](docs/FILMING_GUIDE.md).
 Results and the write-up are filled in as the phases land; nothing below is a measured
 claim yet.
 
-## Setup (macOS, Apple Silicon, CPU only)
+## Setup
+
+CPU only, no GPU anywhere. Developed and tested on macOS 15 / Apple Silicon; the same
+two commands work on Windows and Linux.
+
+macOS and Linux:
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh   # if uv is missing
-brew install ffmpeg
+curl -LsSf https://astral.sh/uv/install.sh | sh    # if uv is missing
 uv sync --extra dev
 uv run pytest
 ```
 
-`uv sync` installs Python 3.11 and the dependencies into `.venv`. The Panda model comes
-from MuJoCo Menagerie through the `robot_descriptions` package, which git-clones the
-repository into `~/.cache/robot_descriptions` the first time it is used (about 3 minutes,
-needs network once).
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+uv sync --extra dev
+uv run pytest
+```
+
+`uv sync` downloads Python 3.11 and every dependency into `.venv`; nothing else needs to
+be installed. FFmpeg is not a system requirement — OpenCV and `imageio-ffmpeg` both ship
+their own. On Linux, torch resolves to the `+cpu` build so the install stays under a
+gigabyte instead of pulling the CUDA stack.
+
+The Panda model comes from MuJoCo Menagerie through the `robot_descriptions` package,
+which git-clones the repository into `~/.cache/robot_descriptions` the first time it runs
+(about 3 minutes, needs network once).
+
+The one platform difference: the interactive MuJoCo viewer must be launched with
+`mjpython` on macOS and with plain `python` on Windows and Linux. Offscreen rendering,
+which is what every script in this repo uses, is identical everywhere.
 
 ## What runs today
 

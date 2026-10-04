@@ -1,145 +1,159 @@
-# palm-prior — Your Action Plan (Mac-only)
+# Task list — do these in order
 
-**Deadline:** 23:59 BST Fri 9 Oct = 00:59 Paris Sat 10 Oct. **Your deadline: Fri 9 Oct, 20:00 Paris.**
-**Everything runs on your Mac (CPU).** No Colab, no GPU.
-**MVP** (a valid submission by itself) = human state extraction + sim + E1 + E2 curve. Ready by **Tue night**.
-✂️ = cut line: hit it → take the fallback, move on.
+Deadline: Friday 9 October 2026, 23:59 BST.
 
-Read `docs/EXPLAINER.md` sections 0–2 before starting. They explain *why* every step exists.
+"Ask Cursor: Phase N" means open Agent mode and paste the Phase N block from
+`docs/CURSOR_PROMPT.md`. Do one phase at a time. Do not start the next task until the
+current one's checks pass on your machine.
 
----
+✂️ marks a fallback: if you hit it, take the fallback and keep moving.
 
-## Day 0 — Fri 2 Oct (tonight, ~1 h)
-
-### Mac setup (15 min)
-- [ ] Check your chip: Apple menu → About This Mac (M1/M2/M3/M4 = Apple Silicon, assumed throughout).
-- [ ] Install `uv` (fast Python manager): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- [ ] `brew install ffmpeg` (for videos). Install Homebrew first if you don't have it.
-- [ ] Create the public GitHub repo `palm-prior`, clone it, open it in Cursor.
-- [ ] Put `EXPLAINER.md` → `docs/`, `FILMING_GUIDE.md` → `docs/`, this file → `docs/TODO.md`.
-- [ ] Cursor: add the Master Rule, run **Phase 0**, then the MuJoCo smoke test it creates. **You should see a Panda image saved to `results/`.**
-
-### Shopping / printing
-- [ ] Find a **blue or green 3–5 cm block**, a small plain plate, tape, a ruler; optionally a coaster and an ~8 cm box.
-- [ ] Cursor **Phase 1** first part: `make_board.py` → print the ArUco board + checkerboard → **measure them**.
-
-**Theory to know for tonight (EXPLAINER §2):** the whole project uses one 8-number state describing *where the hand is relative to the block, and the block relative to the target*. Because it only uses differences, your table and the robot's floor never need to be aligned.
+**Stop point.** Tasks 1–26 are a complete, submittable project on their own: human state
+extraction, simulator, E1, E2. Everything after task 26 is upside. Protect tasks 1–26.
 
 ---
 
-## Day 1 — Sat 3 Oct: film + sim scene
+## Done
 
-### Morning: film (≈ 1.5 h) — follow `FILMING_GUIDE.md` exactly
-- [ ] Finish Cursor **Phase 1** (calibration, ArUco debug, hand + block preview).
-- [ ] Set up the scene, measure the dots → `dots.yaml`.
-- [ ] Calibration video → `scripts/calibrate.py` → RMS < 0.5 px.
-- [ ] `empty.mp4` + **test clip** → check board / hand / block mask.
-- [ ] Record 30 successes + 15 failures. Fill in the log.
-
-**Why the failure clips (EXPLAINER §5, "Why deliberate failure clips matter"):** a planner hunts for the model's mistakes. Without failures in the data, the model never learns that a missed grasp leaves the block behind, and the planner will happily "grasp" next to the block.
-
-### Afternoon: sim (≈ 3 h)
-- [ ] Cursor **Phase 4a**: scene (Panda + block + plate + pad + box) + DLS IK tracker.
-- [ ] Watch it with `mjpython scripts/view_scene.py` (on Mac the viewer needs `mjpython`).
-- [ ] Cursor **Phase 4b**: scripted pick-place ≥ 9/10 on each goal. Save `results/scripted_check.mp4`.
-- ✂️ Grasp slips: raise the friction to 2.0, set `impratio` to 20, slow the lift (smaller max step). Still failing after 1 h → make the block 3 cm and lighter (30 g).
-
-**Theory (EXPLAINER Module 7):** the IK formula $\Delta q = J^\top(JJ^\top + \lambda^2 I)^{-1}e$ turns "move the gripper 2 cm" into joint motions; λ stops wild motions near awkward poses.
+- [x] uv installed, `uv sync --extra dev` works, `uv run pytest` green
+- [x] Phase 0: package scaffold, `configs/default.yaml`, the shared 8-D state, MuJoCo
+      smoke test (`results/smoke.png` shows the Panda)
+- [x] `results/print/board_a4.pdf` generated
+- [x] `data/raw/recording_log.csv` and `data/raw/dots.yaml` filled in
 
 ---
 
-## Day 2 — Sun 4 Oct: phone → human state
+## Perception scripts
 
-- [ ] Cursor **Phase 2**: hand PnP + block tracking + transitions.
-- [ ] Run on 3 clips first. In each debug video:
-  - [ ] green pinch point between thumb and index
-  - [ ] red reprojected pinch on green (< 15 px)
-  - [ ] blue box on the block the whole time; in-hand block follows the hand
-  - [ ] OPEN/CLOSED correct
-  - [ ] plot: hand z ≈ 1–3 cm at rest, 8–15 cm mid-carry; block z = b/2 on the table, rises with the hand
-  - [ ] F1 clip: block z stays flat while the hand lifts ← **the key check**
-  - [ ] F2 clip: block z drops after release
-- [ ] Run all → `results/extraction_report.csv` → **≥ 35 clips must pass** (incl. ≥ 10 failures).
-- [ ] Cross-check: the vision-measured block start vs `dots.yaml` (the report shows the error; < 2 cm is fine).
-- ✂️ Hand z noisy: use the fixed lift profile fallback for the hand (keep the block measured). Block lost in hand: while closed and lifted, set block = pinch point − (0, 0, b/2) and **say so in the README** (it weakens the WM claim a bit).
+1. [ ] Ask Cursor: **Phase 1**
+2. [ ] Run `uv run pytest`. Green.
+3. [ ] Confirm `scripts/calibrate.py`, `scripts/debug_aruco.py` and
+       `scripts/preview_hand.py` exist.
 
-**Theory (EXPLAINER Modules 3–5):** PnP gets the hand's 3D pose from its 2D landmarks; the 2 s rest on the table fixes the scale; the block's 3D position comes from intersecting its pixel ray with a known height.
+## Film the dataset — follow `docs/FILMING_GUIDE.md` literally
+
+4. [ ] Guide Step 1 — print the board, measure 60 mm and 25 mm, put your block size and
+       plate radius into `configs/default.yaml`.
+5. [ ] Guide Step 2 — tape the dots and the board.
+6. [ ] Guide Step 3 — position the phone.
+7. [ ] Guide Step 4 — phone settings.
+8. [ ] Guide Step 5 — record `calib.mp4`.
+9. [ ] Guide Step 6 — record `empty.mp4`.
+10. [ ] Guide Step 7 — the test clip, and all five of its checks.
+        ✂️ Still failing after 45 minutes: switch to the Blackmagic Camera app
+        (Guide Step 10) and re-record `calib.mp4` first.
+11. [ ] Guide Step 8 — record clips 1–45.
+12. [ ] Guide Step 9 — transfer, rename, back up `data/raw/` outside the repo.
+
+## Simulator
+
+13. [ ] Ask Cursor: **Phase 4a** (scene + IK).
+14. [ ] Look at the scene:
+        macOS `uv run mjpython scripts/view_scene.py`,
+        Windows and Linux `uv run python scripts/view_scene.py`.
+        Check the `tcp` marker sphere sits between the two fingertips, and the block,
+        plate, pad and box rest on the floor without intersecting anything.
+15. [ ] Run `uv run pytest tests/test_ik.py`. IK must reach 5 random targets to under
+        5 mm within 30 control steps.
+16. [ ] Run `uv run python scripts/render_layouts.py` and look at the 6-layout grid.
+17. [ ] Ask Cursor: **Phase 4b** (scripted pick-and-place).
+18. [ ] Run `uv run python scripts/scripted_check.py`. At least **9 out of 10 succeed on
+        each goal**, and `results/scripted_check.mp4` looks sane.
+        ✂️ Grasps slipping: `objects.block_friction=2.0`, `sim.impratio=20`,
+        `sim.max_step=0.015`. Still failing after an hour: `objects.block_size=0.03`,
+        `objects.block_mass=0.03`.
+
+## Phone video to state
+
+19. [ ] Ask Cursor: **Phase 2**.
+20. [ ] Run it on 3 clips first: one success, one F1 miss, one F2 drop.
+21. [ ] Open each debug video and check all eight:
+        - [ ] green pinch point sits between your thumb and index tips
+        - [ ] red reprojected point lands on the green one, under 15 px
+        - [ ] blue box stays on the block for the whole clip
+        - [ ] while the block is in your hand, it moves with your hand
+        - [ ] the OPEN / CLOSED label flips at the right moments
+        - [ ] side plot: hand z is 1–3 cm at rest and 8–15 cm mid-carry; block z is half
+              the block size on the table and rises with your hand
+        - [ ] **F1 clip: block z stays flat while your hand lifts.** This is the key check
+        - [ ] F2 clip: block z drops after you open your fingers
+22. [ ] Run the extraction on all 45 clips.
+23. [ ] Open `results/extraction_report.csv`. **At least 35 clips pass, including at
+        least 10 failure clips.** The vision-vs-`dots.yaml` block start error is under 2 cm.
+        ✂️ Hand z too noisy: switch the hand to the fixed lift-profile fallback and keep
+        the block measured. Block lost while held: set block = pinch point − (0, 0, b/2)
+        while closed and lifted, and write that limitation into the README.
+
+## Retargeting and robot data
+
+24. [ ] Ask Cursor: **Phase 3** (tests first). `uv run pytest tests/test_retarget.py` green.
+25. [ ] Run `uv run python scripts/plot_retarget.py`. The robot path has the same shape as
+        your hand path, starts at the block and ends at the target.
+26. [ ] Ask Cursor: **Phase 4c** (replay + E1). Run `uv run python scripts/replay.py`.
+        Check `results/e1.csv`: two-anchor beats naive. Keep the three side-by-side
+        videos — one is the hero GIF.
+27. [ ] Ask Cursor: **Phase 5** (robot dataset). Run
+        `uv run python scripts/generate_robot.py`. Printed outcome mix **50–70% success**,
+        300 training and 100 held-out episodes, a few minutes.
+
+## World model
+
+28. [ ] Ask Cursor: **Phase 6**.
+29. [ ] Run `uv run python scripts/exp_e2.py`.
+30. [ ] Check all three before trusting any curve:
+        - [ ] the world model beats "the block never moves" on held-out data
+        - [ ] on F1-style states (fingers closed next to the block) the predicted lift is
+              near zero
+        - [ ] ensemble spread is larger on robot-only states for the human-only model
+31. [ ] Look at `results/e2_curve.png` **before** tuning anything.
+        ✂️ Pretraining does not help: that is a valid result. Use the heatmap to explain
+        why, try co-training once, then report it honestly and move on.
+32. [ ] Run `uv run python scripts/fig_gap_heatmap.py` and
+        `uv run python scripts/fig_human_overlay.py`.
+33. [ ] Commit and push. Write a 10-line README draft.
+
+## Planning
+
+34. [ ] Ask Cursor: **Phase 7**. `uv run pytest tests/test_cem.py` green.
+35. [ ] Run `uv run python scripts/watch_mpc.py` and **watch all 5 episodes** before
+        launching anything long. A bug here costs hours.
+36. [ ] Run `uv run python scripts/eval_control.py` for **E3**, the main table.
+        ✂️ MPC worse than open loop: lower `mpc.sigma_knot`, raise `mpc.beta`, check the
+        cost uses the right target height. Still worse after an hour: report it, analyse
+        one failure in detail, move on.
+37. [ ] Run **E4** (your path vs a straight line), **E5** (push and noise), **E6**
+        (failure-clip ablation), **E7** (three goals). Every table lands in `results/*.csv`.
+
+## Ship
+
+38. [ ] Ask Cursor: **Phase 8** (figures, reel, README).
+39. [ ] Write **"What worked / what didn't"** yourself. Do not let the agent write this.
+40. [ ] Check every number in the README traces to a file in `results/`.
+41. [ ] Fresh-clone test in a new folder: `git clone`, `uv sync --extra dev`, then run
+        every command in the README.
+42. [ ] Add LICENSE (MIT). Confirm `uv.lock` is committed, no secrets, no dead files.
+43. [ ] Upload 3 sample clips, the processed human transitions and the trained world model
+        to a GitHub release. Link them from the README.
+44. [ ] Make the repo **public**. Open it in a private window to confirm.
+45. [ ] Submit the application form with the repo URL, your name and your CV.
 
 ---
 
-## Day 3 — Mon 5 Oct: retarget + robot data
+## Submission requirements, straight from the brief
 
-- [ ] Cursor **Phase 3** (tests first, all green).
-- [ ] Cursor **Phase 4c**: replay → **E1** + 3 side-by-side videos (phone | sim). Hero GIF candidate.
-- [ ] Cursor **Phase 5**: generate 300 robot episodes (+ 100 held-out, seeds 900–999). Check the outcome mix printed: aim for ~50–70% success, the rest failures.
-
-**Theory (Module 6):** two points fix a 2D rotation + scale + shift exactly, so forcing "my grasp → robot grasp" and "my release → robot release" defines the whole mapping while keeping my motion's shape.
-
----
-
-## Day 4 — Tue 6 Oct: world model + E2 (MVP done tonight)
-
-- [ ] Cursor **Phase 6**: ensemble WM, the 3 training variants, the E2 curve, the embodiment heatmap, the human-video overlay.
-- [ ] **Sanity checks before trusting any curve:**
-  - [ ] the WM beats "block doesn't move" (Δ = 0) on held-out data
-  - [ ] the F1 states (closed next to the block): predicted lift ≈ 0
-  - [ ] ensemble std is higher on robot-only states for the human-only model
-- [ ] Commit, push, write a 10-line README draft. **MVP done.**
-- ✂️ Pretraining doesn't help on the curve: that's a valid finding. Check the heatmap to explain why (usually grasp tolerance), try co-training, then report honestly.
-
-**Theory (Module 9):** predict the *change* of the block, train 5 models so their disagreement shows ignorance, train on 5-step self-rollouts to limit drift.
+- [ ] Public GitHub repository
+- [ ] README with **instructions to run the system**
+- [ ] README with **example outputs**
+- [ ] README with **a note on design choices, what worked and what didn't**
+- [ ] The data you personally collected plays a central role — say exactly where
+- [ ] No AI slop: no "seamless", "revolutionary", "cutting-edge", "leverage"; no emoji;
+      no sentence that could describe any other project; no claim without a number beside it
 
 ---
 
-## Day 5 — Wed 7 Oct: planning + control experiments
+## If you run short of time, drop in this order
 
-- [ ] Cursor **Phase 7**: CEM-MPC.
-- [ ] Watch 5 episodes as video *before* running the big evals (a bug there wastes hours).
-- [ ] Run **E3** (main table), **E4** (prior vs isotropic), **E5** (push + noise), **E6** (failure ablation), **E7** (3 goals). Everything → `results/*.csv`.
-- ✂️ MPC worse than open loop: lower the CEM σ, raise β (more pessimism), check that the cost uses the right target height. Still worse by 18:00 → report it, analyse one failure in detail, move on.
-
-**Theory (Module 10):** CEM = sample, keep the best, refit, repeat. MPC = plan to the end, execute 0.5 s, re-plan. The β·std term makes the robot avoid plans the model is unsure about.
-
----
-
-## Day 6 — Thu 8 Oct: visuals + README
-
-- [ ] Cursor **Phase 8**: figures from CSVs, "imagination" video (predicted block path drawn as ghost spheres in the MuJoCo render), human-video prediction overlay, 60 s reel.
-- [ ] README draft from the skeleton below.
-- [ ] Stretch only if done by 15:00: distill MPC into a policy (speed comparison).
-
-## Day 7 — Fri 9 Oct: ship by 20:00 Paris
-
-- [ ] Write **"What worked / what didn't"** yourself.
-- [ ] Fresh-clone test on your Mac in a new folder: `uv sync` → README commands on the sample data.
-- [ ] Sample clips (3) + processed human transitions + trained WM in a GitHub release or on Drive; link them.
-- [ ] `.gitignore`, LICENSE (MIT), `uv.lock`, no secrets, no dead files.
-- [ ] Public → check in incognito → submit the form + CV.
-
----
-
-## README skeleton
-1. **Title + one-line claim + hero GIF** (phone clip | robot doing the same)
-2. **Key result**: E2 curve + E3 table (measured only)
-3. **Idea in 4 bullets**: physics from my hands; failures on purpose; one shared state; MPC seeded by my path
-4. **My data**: setup photo, 30 + 15 clips, protocol, QC pass rate
-5. **How it works**: pipeline diagram + one paragraph per stage
-6. **Design choices + options rejected** (EXPLAINER §0 table)
-7. **What worked / what didn't**
-8. **Run it** (Mac, CPU): one command per stage, with timings
-9. **Limitations**: sim object positions are given to the robot; top-down grasps only; one object type; human block position is approximate while in hand
-10. **Next steps**
-
-**No slop:** no "seamless/revolutionary/cutting-edge/leverage", no emoji, no claim without a number, delete any sentence that could describe any project.
-
----
-
-## Risks
-| Risk | Fallback |
-|---|---|
-| Grasp physics flaky in MuJoCo | friction/impratio up, lighter smaller block (Day 1 cut) |
-| Block lost while in hand | geometric fallback (Day 2 cut), stated in README |
-| Pretraining shows no gain | report + heatmap explanation (Day 4 cut) |
-| MPC slow | fewer samples (128), fewer ensemble members (3) |
-| MediaPipe won't install | use Python 3.11 exactly (wheels exist for it) |
-| Running late | MVP is a full submission; skip E5–E7 first |
+1. The stretch policy distillation. It was never required.
+2. The 60-second reel. Keep the hero GIF and the static figures.
+3. E4, E5, E6, E7. Keep E1, E2, E3.
+4. The bonus pad and box clips. Run everything on the plate goal only.

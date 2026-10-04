@@ -24,7 +24,18 @@ dev = ["pytest>=8.0"]
 [tool.uv]
 # macOS: uv hard-links from its cache and those files carry the UF_HIDDEN flag, which
 # Python 3.11+ uses to skip .pth files. That silently breaks the editable install.
+# Copying costs a little disk and is harmless on Windows and Linux.
 link-mode = "copy"
+
+# The project is CPU-only on every platform. On Windows and macOS the PyPI torch wheel is
+# already CPU-only; on Linux it is the CUDA build, which is several GB for nothing.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]
