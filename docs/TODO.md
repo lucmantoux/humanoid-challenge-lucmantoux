@@ -76,12 +76,14 @@ extraction, simulator, E1, E2. Everything after task 29 is upside. Protect tasks
 
 12. [x] Ask Cursor: **Phase 4a** (scene + IK).
         **Expect:** `assets/scene.xml` and `src/palm_prior/sim/{scene,env,ik}.py` exist.
-13. [ ] Look at the scene:
+13. [x] Look at the scene:
         macOS `uv run mjpython scripts/view_scene.py`,
         Windows and Linux `uv run python scripts/view_scene.py`.
-        **Expect:** the `tcp` marker sphere sits **between the two fingertips**, not
-        inside the wrist, and the block, plate, pad and box rest on the floor without
-        sinking into it or overlapping each other.
+        **Expect:** in the viewer window and in `results/tcp_check.png`, the `tcp` marker
+        sphere sits **between the two fingertips**, level with the black pads and not up
+        inside the wrist. The block and the goal object rest flat on the floor without
+        sinking in or touching each other, and the arm holds its pose instead of sagging.
+        Only one goal object is in the scene; the other two are parked out of reach.
 14. [x] Run `uv run pytest tests/test_ik.py tests/test_scene.py`.
         **Expect:** 18 tests pass, including 5 random targets reached to under 5 mm within
         30 control steps. If the arm reaches them but slowly, the damping is too high; if
