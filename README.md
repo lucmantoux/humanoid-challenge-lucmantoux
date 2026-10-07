@@ -129,40 +129,40 @@ Full derivations are in [docs/EXPLAINER.md](docs/EXPLAINER.md). What follows is 
 
 **Perception.** Input: a frame, the camera matrix, the ArUco board. Output: the table pose, 21 hand landmarks, the lid centre in the table frame. The board is one static pose per clip: the median translation and the mean rotation. The lid is the green blob in the HSV range in `data/calib/block_hsv.yaml`. Worked check: calibration must finish under 0.5 px RMS (`configs/default.yaml`, `calib.max_rms_px`). The value for this camera is in `data/calib/camera.yaml`.
 
-**State.** Input: end-effector position, lid position, target position and height, gripper bit. Output: \(s \in \mathbb{R}^8\),
+**State.** Input: end-effector position, lid position, target position and height, gripper bit. Output: $s \in \mathbb{R}^8$,
 
-\[
+$$
 s = [\,d_{eo},\; d_{to},\; z_{obj},\; h_{tgt},\; g\,],\quad
 d_{eo} = p_{ee} - p_{obj},\quad
 d_{to} = p_{tgt}^{xy} - p_{obj}^{xy}.
-\]
+$$
 
-The action is \(a = [\,p_{ee}(t{+}1) - p_{ee}(t),\; g(t{+}1)\,]\) at 10 Hz. Given a predicted lid motion \(\Delta\hat p_{obj}\),
+The action is $a = [\,p_{ee}(t{+}1) - p_{ee}(t),\; g(t{+}1)\,]$ at 10 Hz. Given a predicted lid motion $\Delta\hat p_{obj}$,
 
-\[
+$$
 d_{eo}' = d_{eo} + a_{xyz} - \Delta\hat p_{obj},\quad
 d_{to}' = d_{to} - \Delta\hat p_{obj}^{xy},\quad
 z_{obj}' = z_{obj} + \Delta\hat p_{obj}^{z}.
-\]
+$$
 
-Example from the explainer: hand 1 cm above a 4 cm block, pinch closed, target 15 cm in x and 5 cm in y, plate goal, action lifts 2 cm. \(s = [0,0,0.01,\; 0.15,0.05,\; 0.02,\; 0.015,\; 1]\), \(a = [0,0,0.02,1]\). If the lid comes up by 1.9 cm, \(s' = [0,0,0.011,\; 0.15,0.05,\; 0.039,\; 0.015,\; 1]\). Built only through `src/palm_prior/state.py`.
+Example from the explainer: hand 1 cm above a 4 cm block, pinch closed, target 15 cm in x and 5 cm in y, plate goal, action lifts 2 cm. $s = [0,0,0.01,\; 0.15,0.05,\; 0.02,\; 0.015,\; 1]$, $a = [0,0,0.02,1]$. If the lid comes up by 1.9 cm, $s' = [0,0,0.011,\; 0.15,0.05,\; 0.039,\; 0.015,\; 1]$. Built only through `src/palm_prior/state.py`.
 
-**World model.** Input: standardised \(s\), standardised \(a\), and an embodiment flag, 13 numbers. Output: \(\Delta\hat p_{obj}\) in metres and one attach logit. Five MLPs, each 13 → 128 → 128 → 128 → 4, SiLU. Loss is a 5-step self-rollout: mean squared error on the lid motion plus 0.5 times binary cross-entropy on the attach bit. Adam, learning rate \(10^{-3}\), batch 256, 3000 pretraining steps, then 1500 fine-tuning steps at 0.3 times the learning rate with 20% human batches. Example: the N = 0 phone-clip model in [RESULTS.md](RESULTS.md) has a 10-step position error of 17.92 ± 2.10 cm, against 11.67 cm for "the lid never moves."
+**World model.** Input: standardised $s$, standardised $a$, and an embodiment flag, 13 numbers. Output: $\Delta\hat p_{obj}$ in metres and one attach logit. Five MLPs, each 13 → 128 → 128 → 128 → 4, SiLU. Loss is a 5-step self-rollout: mean squared error on the lid motion plus 0.5 times binary cross-entropy on the attach bit. Adam, learning rate $10^{-3}$, batch 256, 3000 pretraining steps, then 1500 fine-tuning steps at 0.3 times the learning rate with 20% human batches. Example: the N = 0 phone-clip model in [RESULTS.md](RESULTS.md) has a 10-step position error of 17.92 ± 2.10 cm, against 11.67 cm for "the lid never moves."
 
 **Retarget and IK.** Input: a hand path and two pairs of points, grasp and release. Output: a gripper path in the simulator, then 7 joint commands. Two points fix a similarity,
 
-\[
+$$
 T(x) = \alpha x + \beta,\quad
 \alpha = \frac{P - G}{x_r - x_g},\quad
 \beta = G - \alpha x_g,\quad
 \kappa = \mathrm{clip}(|\alpha|, 0.5, 1.5).
-\]
+$$
 
-Example from the explainer, checked in `tests/test_retarget.py`: \(x_g = (0.10, 0.05)\), \(x_r = (0.30, 0.15)\), block \(G = (0.50, 0.10)\), target \(P = (0.60, -0.12)\) give \(\alpha = -0.04 - 1.08i\) and \(\beta = 0.45 + 0.21i\). \(T(x_r) = P\). Joint motion is damped least squares, \(\lambda = 0.05\),
+Example from the explainer, checked in `tests/test_retarget.py`: $x_g = (0.10, 0.05)$, $x_r = (0.30, 0.15)$, block $G = (0.50, 0.10)$, target $P = (0.60, -0.12)$ give $\alpha = -0.04 - 1.08i$ and $\beta = 0.45 + 0.21i$. $T(x_r) = P$. Joint motion is damped least squares, $\lambda = 0.05$,
 
-\[
+$$
 \Delta q = J^\top (JJ^\top + \lambda^2 I)^{-1} e.
-\]
+$$
 
 **Simulator.** Input: a joint command and a gripper command. Output: the next 8-D state, from the MuJoCo Panda. The scene is `assets/scene.xml`. The arm is the Menagerie `franka_emika_panda`, loaded by `robot_descriptions`. The gripper tendon is `actuator8`, 255 open and 0 closed. There are no sites in that model; the tool centre is injected at hand-local `[0, 0, 0.1034]`.
 
