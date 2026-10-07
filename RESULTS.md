@@ -88,12 +88,26 @@ The left panel is centimetres of error about one second ahead. Lower is better. 
 
 Source: `results/v2/qc/extraction_report.csv`. Column `depth_ok_frac` in the depth csv has median 0.65.
 
-## What to remember
+## Main results and conclusion
 
-The gray height was not a reach: on demo 2 it ran from −1 cm to 30 cm, with the spike at the release. Measuring the palm replaced it with one reach between 1 cm and 13 cm.
+| Result | Number |
+|---|---|
+| Finger height on demo 2, no measured hand | −1 cm to 30 cm, spike at the release |
+| Same clip, palm size | 1 cm to 13 cm |
+| Release check, 30 successes | 4.6 cm high, 11 cm in 3D. The bar was 1.5 cm and 4 cm |
+| Naive copy | 0/150 |
+| Two-anchor copy | 56/150 |
+| Hybrid copy | 148/150. Plate 50/50, pad 49/50, box 49/50 |
+| Clips plus 10 robot tries | 7.9 cm |
+| Those 10 tries alone | 15.7 cm |
+| Clips alone | 23.5 cm |
+| "The lid never moves" | 14.7 cm |
+| Is the lid held, clips alone | 0.53 |
+| Same question, clips plus 5 robot tries | 0.92 |
+| Clips kept | 45/45 |
 
-Copying a plate video, with both ends pinned and the height taken from the objects, places the lid on 148 of 150 layouts, including a pad and a box the hand never touched. A fixed copy places it on none.
+The phone videos are all plate placements, including the misses. Measuring the hand turned a height that was not a reach into one reach. Copying that video places the lid when the grasp is pinned to the lid, the release is pinned to the target, and those two heights come from the objects: 148 of 150 layouts, including a pad and a box the hand never touched. A map that ignores where the objects are places the lid on none.
 
-With 10 robot tries, training on the clips as well predicts the lid to 7.9 cm, against 15.7 cm without them. The clips alone do not replace the robot tries. At 300 tries they add nothing.
+The clips are useful as extra practice, not as a substitute for the robot. With 10 robot tries, training on both from the start cuts the error from 15.7 cm to 7.9 cm. With no robot tries the clips make the guess worse than assuming the lid stays still. At 300 tries the clips add nothing. Whether the lid is in the hand is a coin toss from the clips alone, and about 0.92 once five robot tries are mixed in.
 
-The release check is still 4.6 cm high. The arm does not trust that height at the grasp.
+The last few centimetres of finger height are still not trustworthy: the release check misses by 4.6 cm. The arm does not use that height at the grasp. It uses the lid and the target. Closed-loop planning was not run.
