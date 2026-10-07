@@ -25,6 +25,7 @@ import numpy as np
 import torch
 
 STATE_DIM = 8
+STATE_DIM_V2 = 11          # v1 state plus target xyz, constant within an episode
 ACTION_DIM = 4
 
 I_D_EO = slice(0, 3)
@@ -99,6 +100,21 @@ def build_state(p_ee: Array, p_obj: Array, p_tgt_xy: Array, h_tgt, g) -> Array:
     return s
 
 
+def build_state_v2(p_ee: Array, p_obj: Array, p_tgt: Array, h_tgt, g) -> Array:
+    """State of shape (..., 11): the 8-D state, then the target position (3,).
+
+    The target is a condition. next_state copies it through and does not predict it.
+    p_tgt (..., 3) is the target point the block should reach, in the same frame as p_ee.
+    """
+    p_tgt = p_tgt if isinstance(p_tgt, torch.Tensor) else np.asarray(p_tgt, dtype=float)
+    base = build_state(p_ee, p_obj, p_tgt[..., :2], h_tgt, g)
+    tgt = _like(p_tgt, base)
+    assert tgt.shape[-1] == 3, tgt.shape
+    s = _cat([base, tgt])
+    assert s.shape[-1] == STATE_DIM_V2, s.shape
+    return s
+
+
 def build_action(dp_ee: Array, g_next) -> Array:
     """Build a of shape (..., 4) from the end-effector displacement and the next gripper command."""
     dp_ee = dp_ee if isinstance(dp_ee, torch.Tensor) else np.asarray(dp_ee, dtype=float)
@@ -130,7 +146,7 @@ def next_state(s: Array, a: Array, dp_obj: Array) -> Array:
 
     returns (..., 8)
     """
-    assert s.shape[-1] == STATE_DIM, s.shape
+    assert s.shape[-1] in (STATE_DIM, STATE_DIM_V2), s.shape
     assert a.shape[-1] == ACTION_DIM, a.shape
     assert dp_obj.shape[-1] == 3, dp_obj.shape
     assert s.shape[:-1] == a.shape[:-1] == dp_obj.shape[:-1], (s.shape, a.shape, dp_obj.shape)
@@ -140,7 +156,10 @@ def next_state(s: Array, a: Array, dp_obj: Array) -> Array:
     z_obj = s[..., I_Z_OBJ : I_Z_OBJ + 1] + dp_obj[..., 2:3]
     h_tgt = s[..., I_H_TGT : I_H_TGT + 1]
     g = a[..., 3:4]
-    s_next = _cat([d_eo, d_to, z_obj, h_tgt, g])
+    parts = [d_eo, d_to, z_obj, h_tgt, g]
+    if s.shape[-1] == STATE_DIM_V2:
+        parts.append(s[..., STATE_DIM:])
+    s_next = _cat(parts)
     assert s_next.shape == s.shape, (s_next.shape, s.shape)
     return s_next
 

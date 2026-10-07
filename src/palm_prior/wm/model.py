@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from palm_prior.state import ACTION_DIM, STATE_DIM, next_state
+from palm_prior.state import ACTION_DIM, STATE_DIM, STATE_DIM_V2, next_state
 
 
 class NormStats(NamedTuple):
@@ -52,10 +52,11 @@ class Ensemble(nn.Module):
     A leading axis of size M on the input selects them.
     """
 
-    def __init__(self, n_members: int = 5, hidden: tuple[int, ...] = (128, 128, 128)):
+    def __init__(self, n_members: int = 5, hidden: tuple[int, ...] = (128, 128, 128), state_dim: int = STATE_DIM):
         super().__init__()
         self.n_members = int(n_members)
-        dims = [STATE_DIM + ACTION_DIM + 1, *[int(h) for h in hidden], 4]
+        self.state_dim = int(state_dim)
+        dims = [self.state_dim + ACTION_DIM + 1, *[int(h) for h in hidden], 4]
         weights = []
         biases = []
         for din, dout in zip(dims[:-1], dims[1:]):
@@ -73,7 +74,7 @@ class Ensemble(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """x (M, B, 13) → (M, B, 4)."""
-        assert x.shape[0] == self.n_members and x.shape[-1] == STATE_DIM + ACTION_DIM + 1, x.shape
+        assert x.shape[0] == self.n_members and x.shape[-1] == self.state_dim + ACTION_DIM + 1, x.shape
         h = x
         for i, (w, b) in enumerate(zip(self.weights, self.biases)):
             h = torch.einsum("mbi,mio->mbo", h, w) + b[:, None, :]
@@ -83,13 +84,23 @@ class Ensemble(nn.Module):
 
 
 def pack(s: torch.Tensor, a: torch.Tensor, embodiment: float, stats: NormStats, device) -> torch.Tensor:
-    """Standardised [s, a, e]. s (..., 8), a (..., 4) → (..., 13)."""
+    """Standardised [s, a, e]. s (..., D), a (..., 4) → (..., D+5). D is 8 or 11."""
     sm = torch.as_tensor(stats.s_mean, dtype=torch.float32, device=device)
     ss = torch.as_tensor(stats.s_std, dtype=torch.float32, device=device)
     am = torch.as_tensor(stats.a_mean, dtype=torch.float32, device=device)
     as_ = torch.as_tensor(stats.a_std, dtype=torch.float32, device=device)
     e = torch.full(s.shape[:-1] + (1,), float(embodiment), device=device, dtype=s.dtype)
     return torch.cat([(s - sm) / ss, (a - am) / as_, e], dim=-1)
+
+
+def assert_state_version(blob: dict, expected: int = STATE_DIM_V2) -> None:
+    """Refuse a v1 checkpoint. The 11-D model cannot load an 8-D one."""
+    version = int(blob.get("state_version", 1))
+    if version != int(expected):
+        raise ValueError(
+            f"checkpoint state_version is {version}, this run needs {expected}. "
+            "Delete checkpoints/ and retrain. A v1 checkpoint cannot be loaded into the 11-D model."
+        )
 
 
 def denorm_dp(raw: torch.Tensor, stats: NormStats, device) -> torch.Tensor:
@@ -108,7 +119,7 @@ def rollout(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Open-loop rollout of every member.
 
-    s0 (M, B, 8), actions (M, B, H, 4).
+    s0 (M, B, D), actions (M, B, H, 4). D is 8 or 11.
     returns dp (M, B, H, 3) in metres and attach logits (M, B, H).
     Step k is fed the state built from that member's own earlier predictions.
     """

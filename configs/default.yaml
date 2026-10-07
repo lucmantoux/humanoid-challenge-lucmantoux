@@ -203,6 +203,70 @@ smoke:
   render_w: 480                     # smoke.png width
   render_h: 360                     # smoke.png height
 
+# FIX.md hand depth. Lengths are Luc's ruler readings (7 Oct 2026), written in FIX.md
+# in centimetres and stored here in millimetres. Lid height is the measured 1.7 cm
+# cylinder. The only measured plate height is the 1.5 cm top, used for the rim and
+# for the inner surface the lid lands on.
+hand_depth:
+  method: palm_anchored
+  segments:
+    - {a: 0,  b: 5,  length_mm: 90}    # wrist -> index knuckle, 9.0 cm
+    - {a: 0,  b: 9,  length_mm: 85}    # wrist -> middle knuckle, 8.5 cm
+    - {a: 0,  b: 13, length_mm: 80}    # wrist -> ring knuckle, 8.0 cm
+    - {a: 0,  b: 17, length_mm: 80}    # wrist -> pinky knuckle, 8.0 cm
+    - {a: 5,  b: 9,  length_mm: 28}    # index knuckle -> middle knuckle, 2.8 cm
+    - {a: 9,  b: 13, length_mm: 25}    # middle knuckle -> ring knuckle, 2.5 cm
+    - {a: 13, b: 17, length_mm: 25}    # ring knuckle -> pinky knuckle, 2.5 cm
+    - {a: 5,  b: 17, length_mm: 72}    # index knuckle -> pinky knuckle, 7.2 cm
+  tilt_correction: true
+  min_foreshorten: 0.7
+  max_residual: 0.15
+  min_segments: 4
+  crosscheck_warn: 0.10
+  anchor_window: 3
+  lid_lock: true
+  lid_search_px: 60
+  blend_frames: 4
+  one_euro: {min_cutoff: 1.0, beta: 0.007, d_cutoff: 1.0}
+  kalman: {q: 1.0, gate_sigma: 3.0, v_max_mps: 2.0, max_consecutive_reject: 3, rts_smooth: true}
+  max_closed_px: 5
+  kappa_range: [0.85, 1.15]
+  max_gap_frames: 5
+
+objects_v2:
+  lid_top_z_m: 0.017
+  plate_rim_z_m: 0.015
+  plate_surface_z_m: 0.015
+  end_frames: 15
+  init_frames: 15
+  max_dev_from_nominal_m: 0.03
+
+retarget_v2:
+  mode: hybrid
+  hover_z_m: 0.10
+  carry_z_m: 0.12
+  carry_z_source: fixed
+  grasp_z_offset_m: 0.0
+  release_clearance_m: 0.005
+  descend_s: 0.6
+  close_hold_s: 0.3
+  lift_s: 0.5
+  lower_s: 0.6
+  open_hold_s: 0.3
+
+qc_v2:
+  allow_multi_grasp_labels: [F1, F2, F3, F4]
+  max_grasps: 8
+  min_depth_ok_frac: 0.7
+
+wm_v2:
+  include_target_xyz: true
+  state_version: 2
+
+pipeline:
+  raw_dir: data/raw
+  out_dir: results/v2
+
 # Experiments (EXPLAINER §25)
 eval:
   repeats: 3                        # repeats per layout seed
