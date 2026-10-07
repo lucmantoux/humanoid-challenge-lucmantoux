@@ -29,4 +29,13 @@ results/extract_demo_*.mp4
 !results/extract_demo_031.mp4
 !results/extract_demo_035.mp4
 
+# Five phone clips stay in git so a reviewer can re-run perception.
+# The other clips stay local. Each file is under GitHub's 100 MB limit.
+# calib.mp4 is about 52 MB, so GitHub warns and still accepts it.
+!data/raw/calib.mp4
+!data/raw/empty.mp4
+!data/raw/demo_001.mp4
+!data/raw/demo_031.mp4
+!data/raw/demo_035.mp4
+
 .DS_Store

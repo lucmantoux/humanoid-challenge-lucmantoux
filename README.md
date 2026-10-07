@@ -4,6 +4,10 @@ Phone clips of a hand moving a lid, turned into a state a simulated Franka Panda
 
 The numbers are in [RESULTS.md](RESULTS.md). The equations, frames and file formats are in [docs/EXPLAINER.md](docs/EXPLAINER.md). How the clips were filmed is in [docs/FILMING_GUIDE.md](docs/FILMING_GUIDE.md).
 
+Clip 1, while the lid is in the air. White lines are the hand. The green dot is the pinch in the image. The red circle is that pinch estimated in centimetres and drawn back. The blue box is the lid. The full preview is [results/extract_demo_001.mp4](results/extract_demo_001.mp4).
+
+![Clip 1 extraction: hand on the lid, plate to the right, height plot beside the frame](results/extract_demo_001.jpg)
+
 ## Part 1 – How to use it
 
 CPU only. Python 3.11, installed with [uv](https://docs.astral.sh/uv/). macOS, Linux and Windows.
@@ -40,6 +44,28 @@ If the phone named the files differently, add `data/raw/clip_files.csv` with col
 
 `data/raw/dots.yaml` is the planned pencil-mark layout. `data/raw/recording_log.csv` is which clip starts on which dot. Both are in the repo.
 
+### Videos included for a reviewer
+
+Five clips are in the repo, about 88 MB together. The other 42 are not. GitHub accepts each file. `calib.mp4` is 52 MB, so the push warns and still goes through.
+
+| File | Clip | What to run |
+|---|---|---|
+| `data/raw/calib.mp4` | checkerboard | `uv run python scripts/calibrate.py` |
+| `data/raw/empty.mp4` | empty table | `uv run python scripts/debug_aruco.py video=data/raw/empty.mp4` |
+| `data/raw/demo_001.mp4` | success, lid onto the plate | `uv run python scripts/preview_hand.py clip=1` |
+| `data/raw/demo_031.mp4` | deliberate miss | watch [results/extract_demo_031.mp4](results/extract_demo_031.mp4) |
+| `data/raw/demo_035.mp4` | deliberate drop | watch [results/extract_demo_035.mp4](results/extract_demo_035.mp4) |
+
+The camera file, the colour range and the three extraction previews are already in the repo, so those commands skip if you do not pass `overwrite=true`.
+
+To re-extract the success clip only:
+
+```bash
+uv run python scripts/extract_human.py clips=1
+```
+
+That takes about a minute and rewrites `results/extraction_report.csv`. Clips that are not on disk are marked as failures. Copy the csv aside first if you want to keep the published table. The numbers in [RESULTS.md](RESULTS.md) come from all 45 clips.
+
 ### Pipeline
 
 Each command prints its runtime. Times in the last column were printed on an Apple M2 Pro during the run that produced [RESULTS.md](RESULTS.md). They are a guide.
@@ -75,7 +101,7 @@ uv run python scripts/scripted_check.py scripted.n_seeds=1 overwrite=true
 
 `pytest` checks the state, the two-anchor map, the IK, and CEM on a quadratic. `smoke_mujoco.py` renders the Panda and writes `results/smoke.png`. `scripted_check.py` picks the block up with a script that is told the positions. `scripted.n_seeds=1` is one layout per goal. The committed `results/scripted_check.csv` is ten layouts; do not pass `overwrite=true` on that command if you want to keep it.
 
-The retargeting replay, the extraction, and the world-model curve need the videos or the extracted `data/human/` files. Those directories are gitignored.
+The retargeting replay and the world-model curve need every clip, or the extracted files in `data/human/`. That directory is gitignored. The five videos above are the ones a reviewer can run.
 
 ## Part 2 – What this is
 
@@ -193,6 +219,6 @@ docs/EXPLAINER.md             equations and formats
 docs/FILMING_GUIDE.md         how the clips were filmed
 ```
 
-`data/raw/*.mp4`, `data/human/`, `data/robot/`, `checkpoints/`, `.venv/` and `third_party/` are gitignored.
+`data/human/`, `data/robot/`, `checkpoints/`, `.venv/` and `third_party/` are gitignored. So are the phone videos, except `calib.mp4`, `empty.mp4`, `demo_001.mp4`, `demo_031.mp4` and `demo_035.mp4`.
 
 License: MIT. Copyright Luc Mantoux.
