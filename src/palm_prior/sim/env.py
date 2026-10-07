@@ -67,7 +67,7 @@ class Env:
         self.model = self.scene.model
         self.data = mujoco.MjData(self.model)
         self.h_tgt = float(cfg.goals[goal])
-        self.block_size = float(cfg.objects.block_size)
+        self.block_size = float(cfg.objects.sim_block_size)
         self.home_key = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, "home")
         self.layout: Layout | None = None
         self._renderer: mujoco.Renderer | None = None

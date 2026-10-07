@@ -2,8 +2,8 @@
 
 Deadline: Friday 9 October 2026, 23:59 BST.
 
-"Ask Cursor: Phase N" means open Agent mode and paste the Phase N block from
-`docs/CURSOR_PROMPT.md`. Do one phase at a time.
+The submission write-up is [README.md](../README.md). This file is the working
+checklist. "Ask Cursor: Phase N" was the instruction to implement that phase.
 
 Every task has an **Expect** line: the thing you should be looking at before you move to
 the next one. If you do not see it, stop and fix it there. Carrying a broken step forward
@@ -13,6 +13,12 @@ is what costs days.
 
 **Stop point.** Tasks 1–29 are a complete, submittable project on their own: human state
 extraction, simulator, E1, E2. Everything after task 29 is upside. Protect tasks 1–29.
+
+The 6 October session has been extracted and run through E2. The account is
+[RESULTS.md](../RESULTS.md). Calibration passes (0.425 px). Each pencil mark is
+the median opening lid on that mark, so the quality check keeps 36/45 clips.
+Two-anchor replay is 20/150 and naive is 0/150. The world model does not beat
+"the lid stays still" (11.7 cm). E3 was not run.
 
 ---
 
@@ -92,13 +98,13 @@ extraction, simulator, E1, E2. Everything after task 29 is upside. Protect tasks
         **Expect:** `results/layouts.png`, a grid of 6 images, each with the block and the
         target at least 15 cm apart, both inside the arm's reach, nothing overlapping, and
         a small red dot between the fingertips.
-16. [ ] Ask Cursor: **Phase 4b** (scripted pick-and-place).
+16. [x] Ask Cursor: **Phase 4b** (scripted pick-and-place).
         **Expect:** `scripts/scripted_check.py` exists and takes a goal and a seed.
-17. [ ] Run `uv run python scripts/scripted_check.py`.
+17. [x] Run `uv run python scripts/scripted_check.py`.
         **Expect:** **at least 9 out of 10 succeed on each goal**, and in
-        `results/scripted_check.mp4` the gripper closes on the block, lifts it cleanly and
-        releases it on the target. If the block squirts out of the fingers, that is the
-        friction problem below, not a planning problem.
+        `results/scripted_check_<goal>.mp4` the gripper closes on the block, lifts it
+        cleanly and releases it on the target. If the block squirts out of the fingers,
+        that is the friction problem below, not a planning problem.
         ✂️ Grasps slipping: `objects.block_friction=2.0`, `sim.impratio=20`,
         `sim.max_step=0.015`. Still failing after an hour: `objects.block_size=0.03`,
         `objects.block_mass=0.03`.
@@ -129,38 +135,45 @@ extraction, simulator, E1, E2. Everything after task 29 is upside. Protect tasks
 21. [ ] Run the extraction on all 45 clips.
         **Expect:** `data/human/transitions.npz` with roughly 9,000 transitions, and one
         raw npz per clip. A couple of minutes of runtime.
-22. [ ] Open `results/extraction_report.csv`.
+22. [x] Open `results/extraction_report.csv`.
         **Expect:** **at least 35 clips pass, including at least 10 failure clips**, and
         the vision-vs-`dots.yaml` block start error under 2 cm. A large start error means
         the board pose or the dot measurements are wrong, not the tracker.
+        6 October: the 2 cm check is against the photographed mark, not `dots.yaml`.
+        **36/45 pass** (29 successes, 3 F2, 4 F3). The nine failures are extra
+        grasp labels or a hand that leaves the frame. See RESULTS.md.
         ✂️ Hand z too noisy: switch the hand to the fixed lift-profile fallback and keep
         the block measured. Block lost while held: set block = pinch point − (0, 0, b/2)
         while closed and lifted, and write that limitation into the README.
 
 ## Retargeting and robot data
 
-23. [ ] Ask Cursor: **Phase 3** (tests first). Run `uv run pytest tests/test_retarget.py`.
+23. [x] Ask Cursor: **Phase 3** (tests first). Run `uv run pytest tests/test_retarget.py`.
         **Expect:** green, including the worked example from EXPLAINER §8
         (α = −0.04 − 1.08i, β = 0.45 + 0.21i) reproduced to 1e-3.
-24. [ ] Run `uv run python scripts/plot_retarget.py`.
+24. [x] Run `uv run python scripts/plot_retarget.py`.
         **Expect:** a top view where the robot path has the same shape as your hand path,
         but starts exactly at the block and ends exactly at the target. If it starts
         somewhere else, the anchors are wrong.
-25. [ ] Ask Cursor: **Phase 4c** (replay + E1). Run `uv run python scripts/replay.py`.
+25. [x] Ask Cursor: **Phase 4c** (replay + E1). Run `uv run python scripts/replay.py`.
         **Expect:** `results/e1.csv` plus a printed summary in which **two-anchor beats
         naive**. If naive wins, the retargeting is mapping to the wrong frame. Keep the
         three side-by-side videos — one is the hero GIF.
-26. [ ] Ask Cursor: **Phase 5**. Run `uv run python scripts/generate_robot.py`.
+        6 October, 29 passing successes: two-anchor 20/150 (plate 7, pad 8, box 5),
+        naive 0/150. Typical miss 12 cm against 23 cm.
+26. [x] Ask Cursor: **Phase 5**. Run `uv run python scripts/generate_robot.py`.
+        6 October, from the 29 passing successes: train 7.0%, held-out 4.0%,
+        injected failures 21.2%. Below the 50–70% band. The injection is firing.
         **Expect:** 300 training and 100 held-out episodes in a few minutes, with a
         printed outcome mix of **50–70% success**. All-success means the failure injection
         is not firing; all-failure means the tracker or the scene is broken.
 
 ## World model
 
-27. [ ] Ask Cursor: **Phase 6**.
+27. [x] Ask Cursor: **Phase 6**.
         **Expect:** `wm/model.py`, `wm/train.py`, `scripts/train_wm.py`,
         `scripts/exp_e2.py`. One model trains in about a minute on CPU.
-28. [ ] Run `uv run python scripts/exp_e2.py`.
+28. [x] Run `uv run python scripts/exp_e2.py`.
         **Expect:** `results/e2.csv` and `results/e2_curve.png`, covering 3 variants × 7
         values of N × 3 seeds.
 29. [ ] Check all three before trusting any curve:
@@ -171,12 +184,16 @@ extraction, simulator, E1, E2. Everything after task 29 is upside. Protect tasks
 
         **Expect:** all three. If the model cannot beat a constant zero prediction, nothing
         downstream is meaningful and no amount of planning will rescue it.
-30. [ ] Look at `results/e2_curve.png` **before** tuning anything.
+        6 October: "never moves" is 11.7 cm. Phone-clips-first is 17.9 cm at N=0
+        and 18.6 cm at N=300. No recipe goes under 11.7 cm. A 2 cm lift is
+        predicted at 0.25 cm centred and 0.39 cm when 3 cm off (human-only seed 0);
+        after 25 episodes, 0.73 cm and 0.77 cm. E3 was not run.
+30. [x] Look at `results/e2_curve.png` **before** tuning anything.
         **Expect:** error falling as N grows, and the human-pretrained curve sitting to
         the left of sim-only. This is the headline result of the submission.
         ✂️ Pretraining does not help: that is a valid result. Use the heatmap to explain
         why, try co-training once, then report it honestly and move on.
-31. [ ] Run `uv run python scripts/fig_gap_heatmap.py` and
+31. [x] Run `uv run python scripts/fig_gap_heatmap.py` and
         `uv run python scripts/fig_human_overlay.py`.
         **Expect:** three heatmap panels where the true-sim panel has a visibly narrower
         high-probability region than the human-only panel — that is the embodiment gap

@@ -65,15 +65,22 @@ def build_model(cfg) -> mujoco.MjModel:
     # prefix="" keeps the Menagerie names (actuator1.., hand, home) exactly as documented.
     spec.attach(panda, prefix="", frame=spec.worldbody.add_frame(name="panda_mount"))
 
-    b = float(cfg.objects.block_size)
+    b = float(cfg.objects.sim_block_size)
     spec.geom("block").size = [b / 2, b / 2, b / 2]
     spec.geom("block").mass = float(cfg.objects.block_mass)
     spec.geom("block").friction[0] = float(cfg.objects.block_friction)
     spec.body("block").pos = [0.5, 0.0, b / 2]
 
     plate_h = float(cfg.objects.plate_height)
-    spec.geom("plate").size = [float(cfg.objects.plate_radius), plate_h / 2, 0.0]
+    radius = float(cfg.objects.plate_radius)
+    spec.geom("plate").size = [radius, plate_h / 2, 0.0]
     spec.geom("plate").pos = [0.0, 0.0, plate_h / 2]
+    # Top of the contact slab stays at plate_h. 4 cm of thickness stops the block
+    # tunnelling through the visible 1.5 cm disc (see assets/scene.xml).
+    contact_h = float(cfg.objects.plate_contact_height)
+    # A box, not a cylinder: a dropped block can come to rest inside a thin cylinder.
+    spec.geom("plate_contact").size = [radius, radius, contact_h / 2]
+    spec.geom("plate_contact").pos = [0.0, 0.0, plate_h - contact_h / 2]
 
     pad = np.array(cfg.objects.pad_size, float)
     spec.geom("pad").size = list(pad / 2)

@@ -71,7 +71,7 @@ def test_menagerie_actuator_names_and_gripper_range(scene):
 def test_object_sizes_come_from_the_config(scene):
     """configs/default.yaml is the authority; assets/scene.xml only sketches the stage."""
     model = scene.model
-    half = float(CFG.objects.block_size) / 2
+    half = float(CFG.objects.sim_block_size) / 2
     np.testing.assert_allclose(model.geom_size[scene.block_geom], [half, half, half])
     assert model.body_mass[scene.block_body] == pytest.approx(float(CFG.objects.block_mass))
     assert model.geom_friction[scene.block_geom][0] == pytest.approx(float(CFG.objects.block_friction))

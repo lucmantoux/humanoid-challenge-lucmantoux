@@ -19,11 +19,17 @@ paths:
 
 # Physical objects, shared by perception and sim (EXPLAINER §2, Module 7)
 objects:
-  block_size: 0.04                  # MEASURE: cube edge b; EXPLAINER uses a 4 cm block
+  block_size: 0.017                 # MEASURED cylinder height, standing, 1.7 cm. Camera plane z = half this.
+  sim_block_size: 0.04              # sim cube edge. A 1.7 cm cube cannot be pinched: the
+                                    # Menagerie fingertips hit the floor first (sweep on
+                                    # seeds 0–3: 2.5 cm 0/4, 3.0 cm 1/4, 4.0 cm 3/4).
   block_mass: 0.05                  # 50 g block (Module 7)
   block_friction: 1.5               # sliding friction of the block (Module 7)
-  plate_radius: 0.09                # MEASURE: radius of my real plate (~18 cm plate in the filming guide)
+  plate_radius: 0.0585              # MEASURED plate, 11.7 cm across, so radius 5.85 cm
   plate_height: 0.015               # plate top height = target height for goal "plate"
+  plate_contact_height: 0.04        # collision slab under the visible disc; the visible
+                                    # top stays at plate_height. 1.5 cm is thin enough
+                                    # that a dropped block falls through it.
   pad_size: [0.10, 0.10, 0.005]     # 10x10x0.5 cm static pad (Module 7)
   box_size: 0.08                    # 8 cm static cube, used as the "box top" goal (Module 7)
 
@@ -79,7 +85,7 @@ hand:
 
 # Module 4 - block tracking
 block_track:
-  lift_margin: 0.03                 # pinch this far above the block's last z => treat as in-hand
+  lift_margin: 0.03                 # pinch more than this above the block's last z => block is still on the table (EXPLAINER Module 4)
   occlusion_area_frac: 0.3          # blob smaller than this fraction of the rest-time area => invalid
   max_gap_frames: 10                # interpolate gaps up to this length
   savgol_window: 9                  # smoothing window (frames)
@@ -94,7 +100,7 @@ human:
   qc:
     min_valid_hand: 0.9             # fraction of frames with a valid pinch point
     min_valid_block: 0.9            # fraction of frames with a valid block position
-    max_start_err: 0.02             # vision block start vs dots.yaml disagreement
+    max_start_err: 0.02             # opening lid vs the photographed pencil mark (median of lids seen on that dot)
     min_pass_clips: 35              # acceptance over the whole dataset (docs/TODO.md Day 2)
 
 # Module 6 - two-anchor retargeting
@@ -131,6 +137,24 @@ sim:
     z_tol: 0.01                     # |z_obj - (h_tgt + b/2)| below this
     settle_seconds: 1.0             # settle before the speed check
     max_speed: 0.01                 # block speed below this after settling
+
+# Scripted pick-and-place (scripts/scripted_check.py). None of these are fixed by the
+# EXPLAINER: this is the hand-written reference behaviour the sim is checked against, and
+# later the source of the robot episodes' timing.
+scripted:
+  approach_height: 0.10             # hover this far above the block top before descending
+  grasp_offset: 0.0                 # tcp height relative to the block centre when closing
+  carry_height: 0.15                # block centre height while traversing
+  release_clearance: 0.005          # gap left under the block before the fingers open
+  dwell_steps: 5                    # control steps held still at the close
+  open_steps: 15                    # control steps to hold still while the fingers open at the release
+  settle_steps: 4                   # extra steps per waypoint so the tracker can catch up
+  creep_step: 0.008                 # max metres per step while descending onto the block or the target
+  reach_tol: 0.006                  # a waypoint counts as reached inside this, metres
+  max_reach_steps: 80               # give up on a waypoint after this many control steps
+  n_seeds: 10                       # layouts per goal in scripts/scripted_check.py
+  sweep_grasp_offset: [-0.005, 0.0, 0.005, 0.010]
+  sweep_max_step: [0.010, 0.015, 0.025]
 
 # Module 8 - robot data generation
 robot_data:

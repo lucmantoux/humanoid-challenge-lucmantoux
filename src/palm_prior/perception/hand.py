@@ -101,3 +101,178 @@ def aperture(hand: HandFrame) -> float:
     scale = np.linalg.norm(hand.px[WRIST] - hand.px[MIDDLE_MCP])
     assert scale > 0, "degenerate hand landmarks"
     return float(pinch / scale)
+
+
+class PnPPinch(NamedTuple):
+    """One frame of solvePnP on the 21 world landmarks.
+
+    R (3, 3), t (3,) take a world-landmark point into the camera: X_C = R X + t.
+    z_pnp is the camera-frame depth of the pinch, before the rest-pose scale k.
+    reproj is the pixel error of that pinch point.
+    """
+
+    R: np.ndarray
+    t: np.ndarray
+    z_pnp: float
+    reproj: float
+
+
+def solve_pinch(hand: HandFrame, K: np.ndarray, dist: np.ndarray) -> PnPPinch | None:
+    """PnP of the 21 landmarks. None when the pose is behind the camera or the fit fails.
+
+    K (3, 3), dist (n,). The world landmarks are in metres at an average-hand scale,
+    so the depth this returns is Z_pnp in EXPLAINER §7, not yet the true depth.
+    """
+    assert K.shape == (3, 3), K.shape
+    obj = np.ascontiguousarray(hand.world, np.float64)
+    img = np.ascontiguousarray(hand.px, np.float64)
+    ok, rvec, tvec = cv2.solvePnP(obj, img, K, dist, flags=cv2.SOLVEPNP_ITERATIVE)
+    if not ok:
+        return None
+    R, _ = cv2.Rodrigues(rvec)
+    t = tvec.reshape(3)
+    pinch_w = 0.5 * (hand.world[THUMB_TIP] + hand.world[INDEX_TIP])
+    p_C = R @ pinch_w + t
+    if p_C[2] <= 1e-6:
+        return None
+    proj, _ = cv2.projectPoints(pinch_w.reshape(1, 1, 3), rvec, t.reshape(3, 1), K, dist)
+    reproj = float(np.linalg.norm(proj.reshape(2) - pinch_px(hand)))
+    return PnPPinch(R=R, t=t, z_pnp=float(p_C[2]), reproj=reproj)
+
+
+def rest_scale(z_plane: np.ndarray, z_pnp: np.ndarray) -> float:
+    """k = median over rest frames of Z_plane / Z_pnp (EXPLAINER §7).
+
+    Both arrays are (N,). Non-finite samples, and non-positive PnP depths, are ignored.
+    """
+    z_plane = np.asarray(z_plane, float)
+    z_pnp = np.asarray(z_pnp, float)
+    assert z_plane.shape == z_pnp.shape, (z_plane.shape, z_pnp.shape)
+    ok = np.isfinite(z_plane) & np.isfinite(z_pnp) & (z_pnp > 1e-6) & (z_plane > 1e-6)
+    if int(ok.sum()) == 0:
+        return float("nan")
+    return float(np.median(z_plane[ok] / z_pnp[ok]))
+
+
+def pinch_camera(pnp: PnPPinch, world_pinch: np.ndarray, k: float) -> np.ndarray:
+    """True pinch position in the camera frame, p_C = k (R X + t). (3,)"""
+    assert world_pinch.shape == (3,), world_pinch.shape
+    return float(k) * (pnp.R @ world_pinch + pnp.t)
+
+
+def gripper_signal(aperture_series: np.ndarray, cfg, rest: np.ndarray | None = None) -> tuple[np.ndarray, float, float]:
+    """Per-frame gripper g in {0, 1}.
+
+    aperture_series (N,); missing frames are NaN and stay NaN. The clip starts open.
+
+    EXPLAINER §7 closes when the aperture is small. That is right when the resting
+    hand is open, so a pinch is the low value. These clips rest with the fingers
+    together, and the thumb and index spread to get around the lid, so the rest
+    pose is the low value and the grasp is the departure from it. When `rest` is
+    given (a bool mask of the still seconds), the open pose is the median aperture
+    there, and the same 0.3 / 0.6 fractions of the clip's aperture span are applied
+    to the distance from that rest value: far from rest closes, near rest opens.
+
+    Returns g (N,), and the two distance thresholds (close_above, open_below).
+    """
+    a = np.asarray(aperture_series, float)
+    assert a.ndim == 1, a.shape
+    known = a[np.isfinite(a)]
+    assert len(known) > 0, "no aperture samples"
+    h = cfg.hand
+    a_lo = float(np.percentile(known, float(h.aperture_lo_pct)))
+    a_hi = float(np.percentile(known, float(h.aperture_hi_pct)))
+    span = max(a_hi - a_lo, 1e-6)
+    if rest is None:
+        close_thr = a_lo + float(h.close_frac) * span
+        open_thr = a_lo + float(h.open_frac) * span
+        g = np.full(len(a), np.nan)
+        state = 0.0
+        for i, ai in enumerate(a):
+            if not np.isfinite(ai):
+                continue
+            if ai < close_thr:
+                state = 1.0
+            elif ai > open_thr:
+                state = 0.0
+            g[i] = state
+        return g, close_thr, open_thr
+
+    rest = np.asarray(rest, bool)
+    assert rest.shape == a.shape, (rest.shape, a.shape)
+    rest_a = a[rest & np.isfinite(a)]
+    assert len(rest_a) > 0, "no rest frames for the open aperture"
+    a_rest = float(np.median(rest_a))
+    close_above = float(h.open_frac) * span
+    open_below = float(h.close_frac) * span
+    g = np.full(len(a), np.nan)
+    state = 0.0
+    for i, ai in enumerate(a):
+        if not np.isfinite(ai):
+            continue
+        dev = abs(ai - a_rest)
+        if dev > close_above:
+            state = 1.0
+        elif dev < open_below:
+            state = 0.0
+        g[i] = state
+    return g, close_above, open_below
+
+
+def fill_gaps(values: np.ndarray, max_gap: int) -> np.ndarray:
+    """Linear-fill interior NaN runs of length <= max_gap. Longer runs stay NaN.
+
+    values (N,) or (N, D). A row is missing when any component is non-finite.
+    Ends are not extrapolated.
+    """
+    assert max_gap >= 0, max_gap
+    src = np.asarray(values, float)
+    squeeze = src.ndim == 1
+    out = src.reshape(len(src), -1).copy() if squeeze else src.copy()
+    assert out.ndim == 2, out.shape
+    valid = np.isfinite(out).all(axis=1)
+    n = len(out)
+    i = 0
+    while i < n:
+        if valid[i]:
+            i += 1
+            continue
+        j = i
+        while j < n and not valid[j]:
+            j += 1
+        if i > 0 and j < n and (j - i) <= max_gap:
+            weight = np.linspace(0.0, 1.0, j - i + 2)[1:-1, None]
+            out[i:j] = (1.0 - weight) * out[i - 1] + weight * out[j]
+        i = j
+    return out[:, 0] if squeeze else out
+
+
+def smooth_series(values: np.ndarray, window: int, order: int) -> np.ndarray:
+    """Savitzky-Golay along time, separately on each finite run long enough for the window.
+
+    values (N,) or (N, D). NaN rows are left as NaN, so a long detection gap is not
+    smeared into the samples on either side.
+    """
+    from scipy.signal import savgol_filter
+
+    assert window % 2 == 1 and window > order >= 0, (window, order)
+    src = np.asarray(values, float)
+    squeeze = src.ndim == 1
+    out = src.reshape(len(src), -1).copy() if squeeze else src.copy()
+    valid = np.isfinite(out).all(axis=1)
+    n = len(out)
+    i = 0
+    while i < n:
+        if not valid[i]:
+            i += 1
+            continue
+        j = i
+        while j < n and valid[j]:
+            j += 1
+        length = j - i
+        if length >= window:
+            out[i:j] = savgol_filter(out[i:j], window, order, axis=0, mode="interp")
+        elif length > order + 1 and length % 2 == 1:
+            out[i:j] = savgol_filter(out[i:j], length, order, axis=0, mode="interp")
+        i = j
+    return out[:, 0] if squeeze else out
